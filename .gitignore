@@ -34,3 +34,11 @@ vignettes/*.pdf
 
 # Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
 rsconnect/
+
+# IDE
+.idea
+*.iml
+
+# Python
+*.pyc
+.ipynb_checkpoints
