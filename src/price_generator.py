@@ -16,9 +16,9 @@ def random_walk(a, h, l, start, end, freq):
     return pd.Series(np.array(r), index=index)
 
 
-def random_price():
+def random_price(days=127):
     start_day = np.random.choice(pd.date_range(start='2000-01-01', end='2018-08-01', freq='D'))
-    end_day = start_day + np.timedelta64(127, 'D')
+    end_day = start_day + np.timedelta64(days, 'D')
     start = np.random.randint(10, 200)
     low = max(5, start - np.random.randint(0, 200))
     high = min(200, start + np.random.randint(0, 200))

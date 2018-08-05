@@ -6,6 +6,10 @@ from deap import base
 from deap import creator
 from deap import tools
 from deap import algorithms
+
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import train_test_split
+
 import numpy as np
 import multiprocessing
 from microssembly2 import Microssembly
@@ -34,7 +38,7 @@ def plot_trades(price, signal, plt):
     plt.title('trades')
 
 
-def get_signal(price, code):
+def get_features(price, code):
 
     in_mem_size = 3
 
@@ -49,10 +53,23 @@ def get_signal(price, code):
 
     def apply_code(values):
         mssembly.load_data(values.tolist())
-        mssembly.run(code, cycles=200)
-        return mssembly.memory[15] if mssembly.memory[14] != 0 else np.nan
+        mssembly.run(code, cycles=100)
+        return mssembly.memory
 
-    return pad_left(price, 2**in_mem_size - 1).rolling(2**in_mem_size).apply(apply_code)[(2**in_mem_size - 1):]
+    p = pad_left(price, 2**in_mem_size - 1)
+    df = pd.DataFrame([apply_code(p.shift(-x).values[:2**in_mem_size]) for x in range(len(price))[::]])
+    df[~np.isfinite(df)] = 0
+    return df.values
+
+
+def get_signal(price, signal, code):
+    X = get_features(price, code)
+    X_train, X_test, y_train, y_test = train_test_split(X, signal, test_size=0.5)
+    y_train.fillna(2, inplace=True)
+    y_test.fillna(2, inplace=True)
+    estimator = DecisionTreeClassifier(class_weight='balanced')
+    estimator.fit(X_train, y_train)
+    return pd.Series(estimator.predict(X_test), index=y_test.index)
 
 
 def loss_function(actual, observed):
@@ -60,21 +77,33 @@ def loss_function(actual, observed):
     def recall(signum):
         return np.sum(actual[observed[observed == signum].index] == signum) / len(observed[observed == signum]) + 1e-10
 
-    def precision():
-        return (np.sum(np.isnan(actual[observed[observed.isna()].index]))
-         / len(observed[observed.isna()]) + 1e-9)
-
-    return 3 / (1 / recall(1) + 1 / recall(0) + 1 / precision())
+    return 3 / (1 / recall(1) + 1 / recall(0) + 1 / recall(2))
 
 
 def eval_individual(ind, get_strategy_signal):
-    price = random_price()
-    observed_signal = get_strategy_signal(price)
-    while len(np.unique(observed_signal.dropna())) < 1 and len(observed_signal.dropna()) > 5:
-        price = random_price()
-        observed_signal = get_strategy_signal(price)
-    signal = get_signal(price, ''.join(map(str, ind)))
-    return loss_function(signal, observed_signal),
+
+    def get_good_price():
+        price = random_price(127 * 2)
+        signal = get_strategy_signal(price)
+        while len(np.unique(signal.dropna())) < 1 and len(signal.dropna()) > 5:
+            price = random_price(127 * 2)
+            signal = get_strategy_signal(price)
+        return price, signal
+
+    price, signal = get_good_price()
+
+    X = get_features(price, ''.join(map(str, ind)))
+    X_train, X_test, y_train, y_test = train_test_split(X, signal, test_size=0.5)
+    y_train.fillna(2, inplace=True)
+    y_test.fillna(2, inplace=True)
+
+    try:
+        estimator = DecisionTreeClassifier(class_weight='balanced')
+        estimator.fit(X_train, y_train)
+        signal = estimator.predict(X_test)
+        return loss_function(pd.Series(signal, index=y_test.index), y_test),
+    except:
+        return 0,
 
 
 def cx_random_one_point(ind1, ind2):
