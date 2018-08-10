@@ -36,6 +36,8 @@ def plot_trades(price, signal, plt):
 
 def get_signal(price, code):
 
+    price = normalize_price(price)
+
     in_mem_size = 3
 
     mssembly = Microssembly(architecture=4)
@@ -49,7 +51,7 @@ def get_signal(price, code):
 
     def apply_code(values):
         mssembly.load_data(values.tolist())
-        mssembly.run(code, cycles=200)
+        mssembly.run(code, cycles=100)
         return mssembly.memory[15] if mssembly.memory[14] != 0 else np.nan
 
     return pad_left(price, 2**in_mem_size - 1).rolling(2**in_mem_size).apply(apply_code)[(2**in_mem_size - 1):]
@@ -65,6 +67,10 @@ def loss_function(actual, observed):
          / len(observed[observed.isna()]) + 1e-9)
 
     return 3 / (1 / recall(1) + 1 / recall(0) + 1 / precision())
+
+
+def normalize_price(price):
+    return (price - price.shift(1)).fillna(0)
 
 
 def eval_individual(ind, get_strategy_signal):
