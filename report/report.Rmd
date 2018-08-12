@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-Mastering equity trading might be a challenging and risky pursuit. It takes years of practice and some mistakes to forge a good trading strategy. Once a strategy is developed it should be constantly adjusted to stay current in the always changing environment of financial stock markets. While majority of the trades nowadays are done by computers, there is still a small portion of trades that are made by real-life humans deciding to buy or sell shares in one company or another^[https://www.washingtonpost.com/news/wonk/wp/2018/02/07/the-robots-v-robots-trading-that-has-hijacked-the-stock-market]. If a strategy employed by a human has not been coded using a computer programming language from start it might be hard to automate it later or share it with others when the strategy has matured. In this work we want to see whether machine learning algorithms can be used to automatically learn given strategy from decisions made by a trader without requiring any additional input other than sell/buy signal and stock market data. We demonstrate three methods which can be used to learn to imitate trader's signal. We arrived at a conclusion that while these methods works for simple trading strategies, both are not generalizable enough. Lastly, we attempt to explain why this is a hard problem to solve using a single, generic machine learning algorithm.
+Mastering equity trading might be a challenging and risky pursuit. It takes years of practice and some mistakes to forge a good trading strategy. Once a strategy is developed it should be constantly adjusted to stay current in the always changing environment of financial stock markets. While majority of the trades nowadays are done by computers, there is still a small portion of trades that are made by real-life humans deciding to buy or sell shares in one company or another^[https://www.washingtonpost.com/news/wonk/wp/2018/02/07/the-robots-v-robots-trading-that-has-hijacked-the-stock-market]. If a strategy employed by a human has not been coded using a computer programming language from start it might be hard to automate it later or share it with others when the strategy has matured. In this work we want to see whether machine learning algorithms can be used to automatically learn given strategy from decisions made by a trader without requiring any additional input other than sell/buy signal provided by trader and stock market data. We experiment with three methods which can be used to learn to imitate trader's signal. We arrived at a conclusion that while these methods works for simple trading strategies, both are not generalizable enough. Lastly, we attempt to explain why this is a hard problem to solve using a single, generic machine learning algorithm.
 
 ## Problem Statement and Data Description
 
@@ -33,11 +33,11 @@ Our goal was to train a robot that learns to imitate a trader by looking only at
 
 ## Trading Strategies
 
-Although we want to build a robot that can learn any strategy we selected a set of concrete trading algorithms to validate its performance. For our experiment we've chosen a number of strategies of over increasing complexity and used signals from these strategies to benchmark our robot.
+Although we want to build a robot that can learn any strategy we selected a set of concrete trading algorithms to validate robot's performance. For our experiment we've chosen a number of strategies of over increasing complexity and used signals from these strategies to benchmark our robot.
 
-### Strategies based on Moving Average Crossover
+### Moving Average Crossover base strategies
 
-First two strategies are based on an idea of Moving Average Crossover^[https://en.wikipedia.org/wiki/Moving_average_crossover]. We are using 2 strategies based on this principle: 
+First two strategies are based on an idea of Moving Average Crossover^[https://en.wikipedia.org/wiki/Moving_average_crossover]. We've chosen 2 algorithms based on this principle: 
 
 1. A simple 5-day moving average is observed and a signal is generated when moving average goes above or drops below a price at that day.
 1. Two simple moving averages (2-day and 8-day) are observed and a signal is generated when short MA crosses long MA.
@@ -46,7 +46,7 @@ First two strategies are based on an idea of Moving Average Crossover^[https://e
 
 The difference between traditional "investing" and "trading" is that people doing investing research individual companies and make trading decisions based on news, company reports, rumors, etc. The technical traders base their decisions on the previous price pattern of the stock. In turn the technical traders can be divided into two rough categories:  mathematical model traders and psychology traders. The former ones attempt to devise a mathematical model predicting stock behavior using oscillators, various indicators etc. The latter are trying to predict emotions of traders who own or are considering trading the stock. In this paper we are trying to emulate trading patters of a person not basing his decisions on mathematical models 
 
-The simple strategy shown in FIGURE??? is an oversimplified example of psychology style of technical trading. Please note that in real life trading much more parameters than described here are used to improve the odds of a successful trade. 
+The simple strategy shown in \autoref{fig8} is an oversimplified example of psychology style of technical trading. Please note that in real life trading much more parameters than described here are used to improve the odds of a successful trade. 
 
 Let us consider a stock which has been falling in price for multiple days. Continuous selling of the stock likely depleted the ranks of the people who want to sell the stock and potentially attracted short sellers who sold the stock short in hopes of further falling prices. Now let us imagine that one day after several days of falling prices the stock opens up at a higher value than the previous day close. This event will potentially attract buyers who will anticipate reversal of the direction of the stock and will be attracted by relatively cheap prices. At the same time the short sellers may panic that the stock is going to go up which mean losing money and will start covering their positions (buying) driving the stock price even higher. 
 
@@ -54,19 +54,19 @@ Let us consider a stock which has been falling in price for multiple days. Conti
 
 This strategy (oversimplified version) is using the concept that if the price of a stock stays relatively flat for an extended period of time there is a higher probability of this stock to continue moving in the same direction after the stock price left the "flat" zone. There are multiple underlying reasons for stocks staying at roughly the same price. For example if the the price of the stock reaches a round number such as 50, a lot of owners of the stock will be selling the stock because that is a round number they decided they were waiting for the stock to reach before selling it. Even if there are many people willing to buy the stock, the pressure from the sellers will keep the stock down.
 
-To test the performance of the robot, we chose a short flat period to generate more signal. FIGURE??? illustrates the sample strategy. 
+To test the performance of the robot, we chose a short flat period to generate more signal. \autoref{fig9} illustrates the sample strategy. 
 
 ## Robot Models
 
-One way to think about this problem is to imagine a robot that attempts to learn a general form of a mapping $\phi : X \to Y$ from a d-dimensional vector of the real numbers, $X = (x1, x2, . . ., x_L )$, where $x_l \in {\rm I\!R}^d$ to a categorical output $Y$, where $y \in Y = \{y_1, y_2, ... , y_K\}$.
+One way to think about this problem is to imagine a robot that attempts to learn a general form of a mapping $\phi : X \to Y$ from a d-dimensional vector of the real numbers, features, $X = (x1, x2, . . ., x_L )$, where $x_l \in {\rm I\!R}^d$ to a categorical output $Y$, signal, where $y \in Y = \{y_1, y_2, ... , y_K\}$.
 
 Every day our robot takes a set of features derived from a fixed number of historical quotes preceding this day and predicts a category which we map to a buy or sell action. Thus, our robot is a function
 $$\hat{y} = f(x, \theta ).$$
-where $\theta$ are model parameters, which maximizes a sequence of observed outcomes produced by a human trader. 
+where $\theta$ are model parameters, which maximizes a likelihood of an observed outcome produced by a human trader. 
 
-One important difference of this problem from a typical classification setup is that a set of input features, $X$ are unknown. If we need to build a mapping for a specific trading strategy we could potentially find a best subset of features $x$ that maximizes a likelihood of an observed signal by either going manually through all possible features or employing an automated search over feature space.
+One important difference of this problem from a typical classifier is that a set of input features, $X$ are unknown. If we need to build a mapping for a specific trading strategy we could potentially find a best subset of features $x$ that maximizes a likelihood of an observed signal by either engineering features manually or doing an automated search over feature space.
 $$\underset{y \in Y}{argmax}\{p(Y = y)\prod_{i=1}^{d}p(X_i|Y = y)\}.$$
-But to build a generic robot that is capable to imitate any trading strategy we need not only a flexible function $f$ but also a way to automatically search over a set of features $X$ for a best subset that maximizes likelihood of an observed signal.
+To build a generic robot that is capable to imitate any trading strategy we need not only a flexible function $f$ but also to automate search for a best subset of features that maximizes likelihood of an observed signal.
 
 ### Evolving Solution for a Turing-Complete Machine
 
@@ -88,15 +88,15 @@ Genetic algorithms provide an effective alternative to a random search. The basi
 
 #### Covariance Matrix Adaptation Evolution Strategy
 
-When simple Genetic Algorithm proved to be inefficient in search for the best set of instructions we tried a more modern derivative-free method for numerical optimization, CMA-ES^[https://arxiv.org/pdf/1604.00772.pdf]. We did not change the algorithm. Since in CMA-ES new candidate solutions are sampled according to a multivariate normal distribution in ${\rm I\!R}^{n}$ we had to turn a vector of real numbers that represents an individual to a binary set of instruction using rounding to a nearest integer method.
+Besides Genetic Algorithm we tried a more modern derivative-free method for numerical optimization, CMA-ES^[https://arxiv.org/pdf/1604.00772.pdf]. We did not change the algorithm. Since in CMA-ES candidate solutions are sampled according to a multivariate normal distribution in ${\rm I\!R}^{n}$ we had to turn a vector of real numbers that represents an individual into a binary set of instruction to our virtual machine using rounding to a nearest integer method.
 
 ### LSTM Network
 
-Our third model is based on Long Short-Term Memory Recurrent Neural Network with enough cells to learn the strategy. 
+Our third model is based on Long Short-Term Memory Recurrent Neural Network with enough cells to learn any strategy. 
 
 For general-purpose sequence modeling, LSTM networks has proven stable and powerful tool for modeling long-range dependencies^[https://arxiv.org/pdf/1308.0850.pdf].
 
-We used the simplest architecture displayed in \autoref{fig2}. We constructed our training and test datasets by taking 60 quotes, preceding each trading day and turning this sequence into a 60x4 tensor that serves as an input to our network. Next the network applies a series of linear and non-linear transformations at each layer and the final layer produces vector of 3 real numbers. We turn this vector into probabilities by applying a softmax function^[https://en.wikipedia.org/wiki/Softmax_function]. Finally we use argmax function to choose the action with highest probability, one of: 
+We used a simple architecture displayed in \autoref{fig2}. We took 60 quotes, preceding each trading day and turned this sequence into a 60x4 tensor that serves as an input to our network. Next the network applies a series of linear and non-linear transformations at each layer and the final layer produces a vector of 3 real numbers. We turn this vector into probabilities by applying a softmax function^[https://en.wikipedia.org/wiki/Softmax_function]. Finally we use argmax function to choose an action with highest probability, one of: 
 
 * 0 - Sell
 * 1 - Buy
@@ -106,30 +106,28 @@ To optimize our model we've used Adam^[https://arxiv.org/pdf/1412.6980.pdf] algo
 
 ## Results
 
-Since our goal was to build a robot that can automatically discover hidden algorithm behind any trading strategy we've decided to train each model against all our test strategies, from easiest to the hardest and see how far each model can get us. We assume that if a model cannot discover patterns governing a simple strategy it will not be able to learn a more complex one. 
+To benchmark robots we trained each model against all our test strategies, from easiest to the hardest and looked at how far each model can get us. We assume that if a model cannot discover patterns governing a simple strategy it will not be able to learn a more complex one. 
 
-A table with results summary can be found in \autoref{table3}. To calculate scores we've ran the model against 100 randomly chosen time frames and averaged values of following function:
+A table with results summary can be found in \autoref{table3}. To calculate scores we've ran each model against 100 randomly chosen time frames and used scoring function to measure difference between true signal and a simulated one:
 
 $$recall(\eta) = \frac{length((actual\_signal = \eta) \cap (simulated\_signal = \eta))}{length(actual\_signal = \eta)}$$
 
-$$score = \frac{3}{\frac{1}{recall(0)} + \frac{1}{recall(1)} + \frac{1}{recall(2)}}$$
-where $actual\_signal$ and $simulated\_signal$ are both sequences of $y \in Y = \{0, 1, 2\}$, a true signal produced by a strategy and a simulated signal generated by a model, correspondingly.
+$$difference = \frac{3}{\frac{1}{recall(0)} + \frac{1}{recall(1)} + \frac{1}{recall(2)}}$$
+where $actual\_signal$ and $simulated\_signal$ are both sequences of $y \in Y = \{0, 1, 2\}$, a true signal produced by a strategy and a simulated signal generated by a model, correspondingly. Then we averaged differences across all time frames
 
-As you can see from \autoref{fig3} and \autoref{fig4} both, $\mu$ + $\lambda$ and CMA-ES models ware not capable to learn the simplest strategies based on Moving Average Crossover. 
+As you can see from \autoref{fig3} and \autoref{fig4} both, $\mu$ + $\lambda$ and CMA-ES models ware not capable to learn the simplest strategies. 
 
-The third model was much better in matching signals of simplest 2 strategies but failed to get us through a more complex second and third strategies (\autoref{fig5} and \autoref{fig6}).
+The LSTM model was much better in matching a signal of a simplest strategy (\autoref{fig5}) but failed to get us through a more complex Gap up strategy (\autoref{fig6}).
 
 ## Conclusion
 
-We have not found a single machine learning approach that is capable of simulating all possible trading strategies. We think that this problem might be an NP-hard because if a right solution exist we can verify it in polynomial time. Searching for the solution that matches the signal can exceed polynomial time though. To better demonstrate it we decided to include \autoref{fig7} in our report. It shows a simple search space that consist of 3 dimensions only. Each cell is a potential solution that is encoded with 3 bites. These might encode a set of instructions to our virtual machine or a set of parameters of our neural network.  Only one solution will make our machine to produce a signal that matches a strategy ("111" in \autoref{fig7}). If we simply enumerate all possible solutions it will take $2^3$ evaluations to get to a right solution in the worst-case scenario. A genetic algorithm reduce search time but we have not found this reduction sufficient enough to turn this problem into a P-hard.
+We have not found a single machine learning approach that can be used to simulata all possible trading strategies. We think that this might be a NP-hard problem, because searching for the solution that matches the signal can exceed polynomial time. If a right solution exist we can verify it in polynomial time though. To better demonstrate our conclusion we decided to include \autoref{fig7} in our report. It shows a simple search space that consist of 3 dimensions only. Each cell is a potential solution that is encoded using 3 bytes. A solution might represent a set of instructions to our virtual machine or a set of parameters of our neural network.  Only one solution will produce a signal that matches trader's strategy ("111" in \autoref{fig7}). If we simply enumerate all possible solutions it will take $2^3$ evaluations to get to a right solution in the worst-case scenario. A genetic algorithm reduce search time but we have not found this reduction sufficient enough to turn this problem into a P-hard. While in \autoref{fig7} we show only 3 dimensions, most real-life strategies require parameters of much higher dimentionality. For example, an algorithms of the first trading strategy can be coded for our virtual machine using about 100 bytes. It will take $4\cdot10^{22}$ years for a random search to arrive to this solution in the worst-case scenario if we need 1 second to evaluate each solution.
 
-Our LSTM model uses a better optimization technique, that is based on gradient descent. While it is a good alternative to an undirected search over parameter space this method has its own weaknesses. One of the key challenges of this approach is minimizing highly non-convex error functions and avoiding getting trapped in numerous suboptimal local minima^[https://arxiv.org/pdf/1609.04747.pdf]. 
+Our LSTM model uses a better optimization technique, that is based on a gradient descent. While it is a good alternative to an undirected search over parameter space that genetic algorith uses, this method has its own weaknesses. One of the key challenges of this approach is minimizing highly non-convex error functions and avoiding getting trapped in numerous suboptimal local minima^[https://arxiv.org/pdf/1609.04747.pdf]. Search space of this problem is non-linear, highly non-convex and rugged.
 
-While in \autoref{fig7} we show only 3 dimensions most real-life problems require models of much higher dimentionality. For example, an algorithms of the first trading strategy can be coded for our virtual machine using about 100 bites. It will take
 
-$$\frac{2^{100}}{60sec\times60min\times24h\times365days} = 4\cdot10^{22}\ years$$
 
-for a random search to find this algorithm in the worst-case scenario if we need 1 second to evaluate each solution.
+
 
 ## Code
 
@@ -186,11 +184,26 @@ Model                & Trading Strategy                & Test Score \\ \hline
 $\mu$ + $\lambda$ GA & Simple Moving Average Crossover & 0.22       \\ \hline
 CMA-ES               & SimpleMoving Average Crossover  & 0.40       \\ \hline
 LSTM                 & Simple Moving Average Crossover & 0.88       \\ \hline
-LSTM                 & (Ivan Strategy 1)               & 0.37       \\ \hline
+LSTM                 & Gap up strategy                 & 0.37       \\ \hline
+LSTM                 & Breakout strategy               & 0.56       \\ \hline
 \end{tabular}
 \caption{Test scores of all three models.}
 \label{table3}
 \end{table}
+
+\begin{figure}[h]
+  \centering
+    \includegraphics[width=0.8\textwidth]{images/Strategy1.PNG}
+  \caption{Gap up strategy.}
+  \label{fig8}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+    \includegraphics[width=0.8\textwidth]{images/Strategy2.PNG}
+  \caption{Breakout strategy.}
+  \label{fig9}
+\end{figure}
 
 \begin{figure}[h]
   \centering
@@ -230,7 +243,7 @@ LSTM                 & (Ivan Strategy 1)               & 0.37       \\ \hline
 \begin{figure}[h]
   \centering
     \includegraphics[width=1.0\textwidth]{images/fig6.png}
-  \caption{Signal generated by LSTM model compared to a signal produced by (need some name here!!!) strategy.}
+  \caption{Signal generated by LSTM model compared to a signal produced by Gap up strategy.}
   \label{fig6}
 \end{figure}
 
